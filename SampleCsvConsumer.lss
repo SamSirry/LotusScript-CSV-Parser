@@ -1,0 +1,106 @@
+%REM
+	Class CsvConsumer
+	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Description: 
+%END REM
+Private Class CsvConsumer As ICsvConsumer
+	Private DataFields As Variant
+	
+	Private db As NotesDatabase
+	Private doc As NotesDocument
+	
+	Private docSavedCount As Long
+	Private docProcessedCount As Long
+	Private FieldIndex As Long
+	Private LastProgressVal As Double
+
+
+	Sub New(tgtDatabase As NotesDatabase)
+		If tgtDatabase Is Nothing Then
+			Error 5, "The target database must be supplied"
+		Else
+			Set db = tgtDatabase
+		End If
+		
+		
+		Const DataFieldsNames = "Date:Time:Duration:Server:Project:Document:URL"
+		
+		DataFields = Split(DataFieldsNames, ":")
+		
+		docProcessedCount = -1	'this indicates that we're processing the header of the csv file, which we dont want.
+	End Sub
+
+
+	Public Sub ConsumeField(ByVal s As String, Continue As Boolean)
+		If docProcessedCount < 0 Then GoTo Quit	'skip the csv file header row
+		
+		If doc Is Nothing Then
+			Set doc = db.Createdocument()
+			doc.Form = "Log"
+		End If
+		
+		If s <> "" Then
+			Call doc.Replaceitemvalue(DataFields(FieldIndex), s)
+		End If
+
+Quit:
+		FieldIndex = FieldIndex +1
+	End Sub
+	
+	Public Sub SignalEndOfRecord(Continue As Boolean)
+		On Error GoTo Hell
+		
+		If Not doc Is Nothing Then
+			If ProcessNewDoc(doc) Then
+				Call doc.Save(False, False, False)
+				docSavedCount = docSavedCount +1
+			End If
+		End If
+		
+		Set doc = Nothing
+		docProcessedCount = docProcessedCount +1 
+		FieldIndex = 0
+		
+Quit:
+		Exit Sub
+		
+Hell:
+		'Call your favorite error handler here...
+		Error Err, ErrThrow(Module, Me)
+		Resume Quit
+		
+	End Sub
+	
+	Public Sub SignalEndOfFile()
+		Print "Processed " docProcessedCount " docs, of which " docSavedCount " docs were imported."
+	End Sub
+	
+	Public Sub SignalProgress(FractionDone As Double)
+		If (FractionDone = 1) Or (FractionDone - LastProgressVal) => 0.1 Then	'process 10% change or more
+			Print Fix(FractionDone * 100) "% done."
+			LastProgressVal = FractionDone
+		End If
+	End Sub
+	
+	%REM
+		Function ProcessNewDoc
+		Description: Called from SignalEndOfRecord; do whatever you want with the new document before it's stored in the database.
+	%END REM
+	Function ProcessNewDoc(doc As NotesDocument) As Boolean
+		On Error GoTo Hell
+		
+		'Do whatever you want with the new document before it's stored in the database.
+		'.
+		'.
+		'.
+
+Quit:
+	Exit Function
+
+Hell:
+	'Call your favorite error handler here...
+	Error Err, ErrThrow(Module, Me)
+	Resume Quit
+End Function
+
+End Class
