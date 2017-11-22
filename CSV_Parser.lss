@@ -1,0 +1,298 @@
+%REM
+	Library CSVParser
+	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Description: 
+		* A parser library for CSV (Comma-Separated Values) text.
+		* Work adapted from http://www.boyet.com/articles/csvparser.html made by Julian M Bucknall.
+		* This library uses the BigStringWalker class, which can be found here: https://github.com/SamSirry/LotusScript-BigStringWalker
+		* Usage:
+			- Create a class based on ICsvConsumer, and override its methods.
+			- Create an instance from this Consumer class.
+			- Create instances from the CSVParser and CSVCharTokenizer classes
+			- Call the Parse method of the CSVParser
+			See sample code for an example.
+%END REM
+Option Declare
+
+Private Const CsvEOF = Uchr$(0)
+Private Const LF = Uchr$(10)
+Private Const CR = Uchr$(13)
+%REM
+	Class ICharTokenizer
+	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Description: 
+%END REM
+Public Class CSVCharTokenizer
+
+	Private s As BigStringWalker
+	Private index As Long
+	Private haveUnreadChar As Boolean
+	Private unreadChar As String
+
+	Public Sub New(strg As String)
+		Set me.s = New BigStringWalker(strg & CsvEOF)
+		index = 0
+		haveUnreadChar = False
+	End sub
+
+	Private Sub skipCrInCrLf()
+		If (sAt(index) = CR) and (index + 1 <= s.Size) Then
+			If (sAt(index+1) = LF) then
+				index = index +1
+			End if
+		End If
+	End Sub
+
+	Private Function mapCrToLf(c As String) As String
+		if (c = CR) then
+			mapCrToLf = LF
+		else
+			mapCrToLf = c
+		End if
+	End function
+
+	Public Function Peek() As String
+		if (haveUnreadChar) then
+			Peek = unreadChar
+		elseif (index < s.Size) then
+			Peek = mapCrToLf(sAt(index))
+		Else
+			Peek = CsvEOF
+		End If
+	End Function
+
+	Public Function Read() As String
+		If (haveUnreadChar) Then
+			haveUnreadChar = False
+			me.Read = unreadChar
+		ElseIf (index < s.Size) Then
+			Call skipCrInCrLf()
+			me.Read = mapCrToLf(sAt(index))
+			index = index +1
+		Else
+			me.Read = CsvEOF
+		End If
+	End Function
+
+	Public Sub Unread(c As String)
+		If (haveUnreadChar) then
+			Error 32106, "Unread() cannot accept more than one pushed back character"
+		End if
+		haveUnreadChar = True
+		unreadChar = c
+	End Sub
+	
+	Private Function sAt(ByVal n As Long) As String
+		sAt = s.CharAt(n)
+	End Function
+	
+	%REM
+		Property Get CurrentIndex
+		Created Nov 10, 2017 by Sam Hbous/Yusran
+		Description: Zero-based index of the current reader's approx location.
+	%END REM
+	Public Property Get CurrentIndex As Long
+		CurrentIndex = index
+	End Property
+	
+	%REM
+		Property Get DataSize
+		Created Nov 10, 2017 by Sam Hbous/Yusran
+		Description: 
+	%END REM
+	Public Property Get DataSize As Long
+		DataSize = s.Size -1
+	End Property
+End Class
+
+%REM
+	Class CSVParser
+	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Description: 
+%END REM
+Public Class CSVParser
+
+	Public Sub Parse(reader As CSVCharTokenizer, consumer As ICsvConsumer)
+		Call parseCsvFile(reader, consumer)
+	End Sub
+
+	Private Sub parseCsvFile(reader As CSVCharTokenizer , consumer As ICsvConsumer)
+		Dim continue As Boolean
+		continue = True
+		
+		Do While (reader.Peek() <> CsvEOF)
+			Call parseCsvRecord(reader, consumer, continue)
+			If Not continue Then Exit Sub
+		Loop
+		Call consumer.SignalProgress(1)
+		Call consumer.SignalEndOfFile()
+	End Sub
+
+	Private Sub parseCsvRecord(reader As CSVCharTokenizer, consumer As ICsvConsumer, continue As Boolean)
+		Call parseCsvStringList(reader, consumer, continue)
+		If Not continue Then Exit Sub
+		Dim ch As String
+		ch = reader.Read()
+		If ch = CsvEOF Then
+			reader.Unread(ch)
+			ch = LF
+		End If
+		If ch <> LF Then
+			Error 32106, "End of record was expected but more data exists."
+		End If
+		
+		Call consumer.SignalEndOfRecord(continue)
+
+		Dim FractionDone As Double
+		FractionDone = reader.CurrentIndex / reader.DataSize
+		Call consumer.SignalProgress(FractionDone)
+	End Sub
+	
+	Private Sub parseCsvStringList(reader As CSVCharTokenizer , consumer As ICsvConsumer, continue As Boolean)
+		Dim ch As String
+		Do
+			Call parseRawString(reader, consumer, continue)
+			If Not continue Then Exit Sub
+			ch = reader.Read()
+		Loop While (ch = ",")
+		Call reader.Unread(ch)
+	End Sub
+
+	Private Function isFieldTerminator(ByVal c As String) As Boolean
+		isFieldTerminator = ((c = ",") Or (c = LF) Or (c = CsvEOF))
+	End Function
+
+	Private Function isSpace(ByVal c As String) As Boolean
+		isSpace = ((c = " ") Or (c = UChr$(9)))
+	End Function
+
+	Private Sub parseOptionalSpaces(reader As CSVCharTokenizer)
+		Dim ch As String
+		Do
+			ch = reader.Read()
+		Loop While (isSpace(ch))
+		Call reader.Unread(ch)
+	End Sub
+
+	Private Sub parseRawString(reader As CSVCharTokenizer , consumer As ICsvConsumer, continue As Boolean)
+		Call parseOptionalSpaces(reader)
+		Call parseRawField(reader, consumer, continue)
+		If Not continue Then Exit Sub
+		If Not isFieldTerminator(reader.Peek()) Then
+			Call parseOptionalSpaces(reader)
+		End If 
+	End Sub
+
+	Private Sub parseRawField(reader As CSVCharTokenizer , consumer As ICsvConsumer, continue As Boolean)
+		Dim fieldValue As String
+		Dim ch As String
+		ch = reader.Peek()
+		If Not isFieldTerminator(ch) Then
+			If ch = {"} Then
+				fieldValue = parseQuotedField(reader)
+			Else 
+				fieldValue = parseSimpleField(reader)
+			End If
+		End If
+		Call consumer.ConsumeField(fieldValue, continue)
+	End Sub
+	
+	Private Function parseQuotedField(reader As CSVCharTokenizer ) As String
+		Call reader.Read()	'read and discard initial quote
+
+		Dim Field As String
+		Field = parseEscapedField(reader)
+
+		Dim ch As String
+		ch = reader.Read()
+		If (ch <> {"}) Then
+			reader.Unread(ch)
+			Error 32106, "Quoted field has no terminating double quote"
+		End If
+		parseQuotedField = Field
+	End Function
+
+	Private Function parseEscapedField(reader As CSVCharTokenizer) As String
+		Dim sb As String
+
+		Call parseSubField(reader, sb)
+		Dim ch As String
+		ch = reader.Read()
+		Do While (processDoubleQuote(reader, ch))
+			sb = sb & {"}
+			Call parseSubField(reader, sb)
+			ch = reader.Read()
+		Loop
+		Call reader.Unread(ch)
+
+		parseEscapedField = sb
+	End Function
+
+	Private Sub parseSubField(reader As CSVCharTokenizer, sb As String)
+		Dim ch As String
+		ch = reader.Read()
+		Do While ((ch <> {"}) And (ch <> CsvEOF))
+			sb = sb & ch
+			ch = reader.Read()
+		Loop
+		Call reader.Unread(ch)
+	End Sub
+
+	Private Function isBadSimpleFieldChar(c As String) As Boolean
+		isBadSimpleFieldChar = isSpace(c) Or isFieldTerminator(c) Or (c = {"})
+	End Function
+
+	Private Function parseSimpleField(reader As CSVCharTokenizer) As String
+		Dim ch As String
+		ch = reader.Read()
+		If (isBadSimpleFieldChar(ch)) Then
+			Call reader.Unread(ch)
+			parseSimpleField = ""
+			Exit Function
+		End If
+
+		Dim sb As String
+		sb = ch
+		ch = reader.Read()
+		Do While Not isBadSimpleFieldChar(ch)
+			sb = sb & ch
+			ch = reader.Read()
+		Loop
+		reader.Unread(ch)
+
+		parseSimpleField = sb
+	End Function
+
+	Private Function processDoubleQuote(reader As CSVCharTokenizer, ByVal ch As String) As Boolean
+		If ((ch = {"}) And (reader.Peek() = {"})) Then
+			Call reader.Read() 'discard second quote of double
+
+			processDoubleQuote = True
+		End If
+	End Function
+End Class
+
+%REM
+	Class ICsvConsumer
+	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Description: 
+%END REM
+Public Class ICsvConsumer
+
+	Public sub ConsumeField(ByVal FieldVal As String, Continue As Boolean)
+		'Override this
+	End Sub
+	
+	Public Sub SignalEndOfRecord(Continue As Boolean)
+		'Override this
+	End Sub
+	
+	Public Sub SignalEndOfFile()
+		'Override this
+	End Sub
+	
+	Public Sub SignalProgress(FractionDone As Double)
+		'Override this
+	End Sub
+	
+End Class
