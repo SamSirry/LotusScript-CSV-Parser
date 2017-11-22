@@ -6,11 +6,11 @@
 		* Work adapted from http://www.boyet.com/articles/csvparser.html made by Julian M Bucknall.
 		* This library uses the BigStringWalker class, which can be found here: https://github.com/SamSirry/LotusScript-BigStringWalker
 		* Usage:
-      - Create a class based on ICsvConsumer, and override its methods.
-      - Create an instance from this Consumer class.
-      - Create instances from the CSVParser and CSVCharTokenizer classes
-      - Call the Parse method of the CSVParser
-      See sample code for an example.
+			- Create a class based on ICsvConsumer, and override its methods.
+			- Create an instance from this Consumer class.
+			- Create instances from the CSVParser and CSVCharTokenizer classes
+			- Call the Parse method of the CSVParser
+			See sample code for an example.
 %END REM
 Option Declare
 
