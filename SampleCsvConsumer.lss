@@ -1,6 +1,6 @@
 %REM
 	Class CsvConsumer
-	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Created Nov 9, 2017 by Sam Sirry
 	Description: 
 %END REM
 Private Class CsvConsumer As ICsvConsumer
@@ -85,6 +85,7 @@ Hell:
 	%REM
 		Function ProcessNewDoc
 		Description: Called from SignalEndOfRecord; do whatever you want with the new document before it's stored in the database.
+			If the return is True the document gets saved, otherwise it is discarded.
 	%END REM
 	Function ProcessNewDoc(doc As NotesDocument) As Boolean
 		On Error GoTo Hell
