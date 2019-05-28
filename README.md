@@ -22,7 +22,7 @@ Call Parser.Parse(Tokenizer, Consumer)
 ```
 
 Keywords & keyphrases:
-Import CSV using LotusScript
-Import CSV file into Lotus Notes database
-Lotus Script processing CSV data
-Import Data from a CSV File using LotusScript
+* Import CSV using LotusScript
+* Import CSV file into Lotus Notes database
+* Lotus Script processing CSV data
+* Import Data from a CSV File using LotusScript
