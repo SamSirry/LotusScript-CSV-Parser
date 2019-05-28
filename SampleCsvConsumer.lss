@@ -94,6 +94,8 @@ Hell:
 		'.
 		'.
 		'.
+		
+		ProcessNewDoc = True
 
 Quit:
 	Exit Function
