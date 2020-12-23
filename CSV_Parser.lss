@@ -239,7 +239,8 @@ Public Class CSVParser
 	End Sub
 
 	Private Function isBadSimpleFieldChar(c As String) As Boolean
-		isBadSimpleFieldChar = isSpace(c) Or isFieldTerminator(c) Or (c = {"})
+		'isBadSimpleFieldChar = isSpace(c) Or isFieldTerminator(c) Or (c = {"})
+		isBadSimpleFieldChar = isFieldTerminator(c) Or (c = {"})	''Since 2020-07-04: Spc & Tab are not bad, and shouldn't be considered so. -Sam
 	End Function
 
 	Private Function parseSimpleField(reader As CSVCharTokenizer) As String
