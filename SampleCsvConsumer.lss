@@ -107,3 +107,7 @@ Hell:
 End Function
 
 End Class
+
+Private Function ErrThrow(ModuleName, ClassObject) As String
+	ErrThrow = "Error no. " & CStr(Err) & " in Class (" & TypeName(ClassObject) & "), Module (" & ModuleName & ")"
+End Function
