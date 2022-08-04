@@ -14,7 +14,7 @@
 %END REM
 Option Declare
 
-Private Const CsvEOF = Uchr$(0)
+Private Const CsvEOF = ""	'Since 2022-08-04: An empty string indicates the end of file when reading from the source no longer produces bytes. This allows for nulls as part of the CSV data stream.
 Private Const LF = Uchr$(10)
 Private Const CR = Uchr$(13)
 %REM
@@ -76,7 +76,7 @@ Public Class CSVCharTokenizer
 
 	Public Sub Unread(c As String)
 		If (haveUnreadChar) then
-			Error 32106, "Unread() cannot accept more than one pushed back character"
+			Error 5, "Unread() cannot accept more than one pushed back character"
 		End if
 		haveUnreadChar = True
 		unreadChar = c
