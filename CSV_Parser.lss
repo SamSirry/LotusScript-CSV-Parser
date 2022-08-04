@@ -1,6 +1,6 @@
 %REM
 	Library CSVParser
-	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Created Nov 9, 2017 by Sam Sirry
 	Description: 
 		* A parser library for CSV (Comma-Separated Values) text.
 		* Work adapted from http://www.boyet.com/articles/csvparser.html made by Julian M Bucknall.
@@ -8,7 +8,7 @@
 		* Usage:
 			- Create a class based on ICsvConsumer, and override its methods.
 			- Create an instance from this Consumer class.
-			- Create instances from the CSVParser and CSVCharTokenizer classes
+			- Create instances from the CSVCharTokenizer and CSVParser classes
 			- Call the Parse method of the CSVParser
 			See sample code for an example.
 %END REM
@@ -19,7 +19,7 @@ Private Const LF = Uchr$(10)
 Private Const CR = Uchr$(13)
 %REM
 	Class ICharTokenizer
-	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Created Nov 9, 2017 by Sam Sirry
 	Description: 
 %END REM
 Public Class CSVCharTokenizer
@@ -30,7 +30,7 @@ Public Class CSVCharTokenizer
 	Private unreadChar As String
 
 	Public Sub New(strg As String)
-		Set me.s = New BigStringWalker(strg & CsvEOF)
+		Set me.s = New BigStringWalker(strg)
 		index = 0
 		haveUnreadChar = False
 	End sub
@@ -83,12 +83,13 @@ Public Class CSVCharTokenizer
 	End Sub
 	
 	Private Function sAt(ByVal n As Long) As String
+'		sAt = Mid$(s, n+1, 1)
 		sAt = s.CharAt(n)
 	End Function
 	
 	%REM
 		Property Get CurrentIndex
-		Created Nov 10, 2017 by Sam Hbous/Yusran
+		Created Nov 10, 2017 by Sam Sirry
 		Description: Zero-based index of the current reader's approx location.
 	%END REM
 	Public Property Get CurrentIndex As Long
@@ -97,7 +98,7 @@ Public Class CSVCharTokenizer
 	
 	%REM
 		Property Get DataSize
-		Created Nov 10, 2017 by Sam Hbous/Yusran
+		Created Nov 10, 2017 by Sam Sirry
 		Description: 
 	%END REM
 	Public Property Get DataSize As Long
@@ -107,7 +108,7 @@ End Class
 
 %REM
 	Class CSVParser
-	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Created Nov 9, 2017 by Sam Sirry
 	Description: 
 %END REM
 Public Class CSVParser
@@ -207,7 +208,7 @@ Public Class CSVParser
 		ch = reader.Read()
 		If (ch <> {"}) Then
 			reader.Unread(ch)
-			Error 32106, "Quoted field has no terminating double quote"
+			Error 32106, "Quoted field has no terminating double quote at char pos " & reader.CurrentIndex
 		End If
 		parseQuotedField = Field
 	End Function
@@ -275,7 +276,7 @@ End Class
 
 %REM
 	Class ICsvConsumer
-	Created Nov 9, 2017 by Sam Hbous/Yusran
+	Created Nov 9, 2017 by Sam Sirry
 	Description: 
 %END REM
 Public Class ICsvConsumer
