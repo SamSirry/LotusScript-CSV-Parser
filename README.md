@@ -4,7 +4,7 @@
 
 Author notes:
 
-_**Important:** The Lotus Script MultiByte Characterset (LSMBC) is used for storing Strings in memory. When the CSV data contains UTF codepoints that cannot be represented in LSMBC they turn into Nulls. This is obvious when working with some of the newest emojis (as of 2020). The change of data integrety maybe be unacceptable, and there is no workaround of this (not on Domino 9 or earlier)._
+_**Important:** The Lotus Script MultiByte Characterset (LSMBC) is used for storing Strings in memory. When the CSV data contains UTF codepoints that cannot be represented in LSMBC they turn into Nulls. This is obvious when working with some of the newest emojis (as of 2020). The compromise of data integrety maybe be unacceptable, and there is no workaround for this (not on Domino 9 or earlier)._
 * The code was ported to Lotus Script by Sam Sirry, with a few modifications.
 * The SignalProgress method was added to the Consumer class and it helps indicate to the caller how much of the CSV data has been processed.
 * The Continue variable has been made available in the events called in the Consumer. It is True by default. If the Consumer sets it to False this will cause the Parser to stop processing and return to the caller.
